@@ -1,15 +1,40 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { getCompletion } from '../services/openaiService';
+import { ForceGraph2D } from 'react-force-graph';
+import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip } from 'recharts';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import './Chat.css';
+
+const getColor = (probability) => {
+  // Red to yellow to green gradient
+  if (probability < 0.3) {
+    return `rgba(255, 0, 0, ${0.2 + probability * 2})`; // More red for very low probs
+  } else if (probability < 0.7) {
+    return `rgba(255, ${Math.floor(255 * (probability - 0.3) / 0.4)}, 0, 0.5)`; // Yellow transition
+  } else {
+    return `rgba(0, 255, 0, ${probability * 0.5})`; // Green for high probs
+  }
+};
 
 const Chat = () => {
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [messages, setMessages] = useState([]);
+  const [stepMode, setStepMode] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [tokenTree, setTokenTree] = useState(null);
+  const [temperature, setTemperature] = useState(0.3);
   const messagesEndRef = useRef(null);
+  const graphRef = useRef(null);
+
+  // Reset currentStep when a new message is added
+  useEffect(() => {
+    if (messages.length > 0 && messages[messages.length - 1].type === 'assistant') {
+      setCurrentStep(0);
+    }
+  }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -19,189 +44,193 @@ const Chat = () => {
     scrollToBottom();
   }, [messages]);
 
+  const buildTokenTree = (tokens, alternatives) => {
+    const nodes = [];
+    const links = [];
+    let id = 0;
+
+    // Add root node
+    nodes.push({
+      id: id++,
+      name: 'Start',
+      level: 0
+    });
+
+    tokens.forEach((token, idx) => {
+      // Add main token
+      const tokenNode = {
+        id: id++,
+        name: token.token,
+        probability: token.probability,
+        level: idx + 1
+      };
+      nodes.push(tokenNode);
+
+      // Add link from previous token
+      links.push({
+        source: id - 2,
+        target: id - 1,
+        value: token.probability
+      });
+
+      // Add alternative tokens
+      token.alternatives.slice(0, 3).forEach(alt => {
+        const altNode = {
+          id: id++,
+          name: alt.token,
+          probability: alt.probability,
+          level: idx + 1,
+          isAlternative: true
+        };
+        nodes.push(altNode);
+        links.push({
+          source: id - 2,
+          target: id - 1,
+          value: alt.probability
+        });
+      });
+    });
+
+    return { nodes, links };
+  };
+
+  const renderTokenWithTooltip = (token, index) => {
+    const hasStrongAlternatives = token.alternatives.some(alt => alt.probability > token.probability * 0.8);
+    
+    const tooltipContent = (
+      <div className="token-tooltip">
+        <div><strong>Token:</strong> {token.token}</div>
+        <div><strong>Probability:</strong> {(token.probability * 100).toFixed(1)}%</div>
+        {token.alternatives.length > 0 && (
+          <div className="alternatives">
+            <strong>Alternatives:</strong>
+            {token.alternatives.map((alt, i) => (
+              <div key={i} style={{
+                color: alt.probability > token.probability * 0.8 ? '#ff6b6b' : 'inherit'
+              }}>
+                {alt.token}: {(alt.probability * 100).toFixed(1)}%
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+
+    return (
+      <Tippy key={index} content={tooltipContent} placement="top">
+        <span
+          className={`token ${hasStrongAlternatives ? 'has-alternatives' : ''}`}
+          style={{ 
+            backgroundColor: getColor(token.probability),
+            borderBottom: hasStrongAlternatives ? '2px dashed #ff6b6b' : 'none',
+            padding: '2px 0',
+            margin: '0 1px',
+            borderRadius: '3px',
+            cursor: 'pointer',
+            display: 'inline-block'
+          }}
+          onClick={() => setCurrentStep(index)}
+        >
+          {token.token.replace('Ġ', ' ')}
+          {hasStrongAlternatives && 
+            <span style={{ 
+              fontSize: '0.7em', 
+              verticalAlign: 'super',
+              color: '#ff6b6b',
+              marginLeft: '2px'
+            }}>*</span>
+          }
+        </span>
+      </Tippy>
+    );
+  };
+
+  const renderTokens = (tokens) => {
+    return tokens.map((token, index) => renderTokenWithTooltip(token, index));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!prompt.trim()) return;
-    
-    // Add user message immediately
-    const userMessage = {
-      type: 'user',
-      content: prompt.trim()
-    };
-    setMessages(prev => [...prev, userMessage]);
-    
+
+    if (!prompt.trim() || isLoading) {
+      return;
+    }
+
     setIsLoading(true);
     setError('');
-    setPrompt(''); // Clear input after sending
-    
+
+    const currentPrompt = prompt.trim();
+    const userMessage = { type: 'user', content: currentPrompt };
+
+    // Prepare the messages array for the API call, including the new user message.
+    // Note: `messages` here is the state from the current render cycle.
+    const messagesForApi = [...messages, userMessage];
+
+    // Update the UI immediately with the user's message.
+    setMessages(prevMessages => [...prevMessages, userMessage]);
+    setPrompt(''); // Clear input field after grabbing its value and updating state.
+
     try {
-      const response = await getCompletion(prompt);
-      
-      // Extract tokens and their probabilities from the completions API response
+      // Pass the current prompt and the constructed list of messages to the API.
+      const response = await getCompletion(currentPrompt, messagesForApi, 150, temperature);
+
       const { text, logprobs } = response.choices[0];
       const { tokens, token_logprobs, top_logprobs } = logprobs;
-      
-      // Create token objects with probability data
+
       const processedTokens = tokens.map((token, index) => ({
         token,
-        probability: Math.exp(token_logprobs[index]), // Convert log probability to probability
-        alternatives: top_logprobs[index] ? Object.entries(top_logprobs[index]).map(([token, logprob]) => ({
-          token,
+        probability: Math.exp(token_logprobs[index]),
+        alternatives: top_logprobs[index] ? Object.entries(top_logprobs[index]).map(([altToken, logprob]) => ({
+          token: altToken,
           probability: Math.exp(logprob)
         })) : []
       }));
-      
-      // Add assistant message
+
       const assistantMessage = {
         type: 'assistant',
-        tokens: processedTokens
+        tokens: processedTokens,
+        content: text
       };
-      setMessages(prev => [...prev, assistantMessage]);
-      
-      console.log('Response:', response);
-      console.log('Processed tokens:', processedTokens);
+
+      // Add assistant's message to the state.
+      setMessages(prevMessages => [...prevMessages, assistantMessage]);
+
     } catch (err) {
       console.error('Error:', err);
-      setError('Failed to get response. Please check your API key and try again.');
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Function to determine color based on probability
-  const getColor = (probability) => {
-    if (probability >= 0.5) return 'green';
-    if (probability >= 0.2) return 'yellow';
-    return 'red';
-  };
-
-  // Format probability as percentage
-  const formatProbability = (prob) => `${(prob * 100).toFixed(1)}%`;
-
-  const renderTokens = (tokens) => {
-    // Group tokens into words more intelligently
-    const words = [];
-    let currentWord = [];
-    let currentWordProbability = 0;
-    let tokenCount = 0;
-    
-    tokens.forEach((tObj) => {
-      // Clean the token from special characters
-      const cleanToken = tObj.token.replace('Ġ', '');
-      
-      // Start a new word if:
-      // 1. Current token starts with a space
-      // 2. Current token is punctuation
-      // 3. We're at the start
-      if (tObj.token.startsWith('Ġ') || 
-          tObj.token.match(/^[.,!?;:]/) || 
-          currentWord.length === 0) {
-        
-        if (currentWord.length > 0) {
-          // Calculate average probability for the word
-          const avgProb = currentWordProbability / tokenCount;
-          words.push({
-            tokens: currentWord,
-            averageProbability: avgProb
-          });
-        }
-        currentWord = [tObj];
-        currentWordProbability = tObj.probability;
-        tokenCount = 1;
-      } else {
-        currentWord.push(tObj);
-        currentWordProbability += tObj.probability;
-        tokenCount++;
-      }
-    });
-    
-    // Add the last word if exists
-    if (currentWord.length > 0) {
-      const avgProb = currentWordProbability / tokenCount;
-      words.push({
-        tokens: currentWord,
-        averageProbability: avgProb
-      });
-    }
-
-    return (
-      <div style={{ lineHeight: '1.8', whiteSpace: 'pre-wrap' }}>
-        {words.map((word, wordIndex) => {
-          const avgProb = word.averageProbability;
-          const combinedText = word.tokens
-            .map(t => t.token.replace('Ġ', ''))
-            .join('');
-
-          return (
-            <Tippy
-              key={wordIndex}
-              content={
-                <div className="token-tooltip">
-                  <div><strong>Word:</strong> "{combinedText}"</div>
-                  <div><strong>Confidence:</strong> {formatProbability(avgProb)}</div>
-                  <div><strong>Tokens:</strong></div>
-                  {word.tokens.map((tObj, i) => (
-                    <div key={i} style={{marginLeft: '10px'}}>
-                      • "{tObj.token}": {formatProbability(tObj.probability)}
-                    </div>
-                  ))}
-                </div>
-              }
-              placement="top"
-              arrow={true}
-              duration={200}
-            >
-              <span
-                className="word"
-                style={{ 
-                  backgroundColor: getColor(avgProb),
-                  padding: '2px 4px',
-                  margin: '0 3px',
-                  borderRadius: '3px',
-                  display: 'inline-block',
-                  cursor: 'help',
-                  border: '1px solid rgba(0,0,0,0.1)',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                  position: 'relative',
-                  lineHeight: '1.5'
-                }}
-              >
-                {combinedText}
-                {!combinedText.match(/^[.,!?;:]/) &&
-                  <span style={{
-                    position: 'absolute',
-                    right: '-3px',
-                    top: '0',
-                    bottom: '0',
-                    width: '1px',
-                    backgroundColor: 'rgba(0,0,0,0.1)',
-                    zIndex: 1
-                  }} />
-                }
-              </span>
-            </Tippy>
-          );
-        })}
-      </div>
-    );
-  };
-
   return (
     <div className="chat-container">
       <div className="chat-header">
-        <h1>OpenAI Chat</h1>
+        <h1>Inference Insights</h1>
+        <div className="temperature-control">
+          <label htmlFor="temperature">Temperature: {temperature.toFixed(2)}</label>
+          <input
+            type="range"
+            id="temperature"
+            min="0"
+            max="1"
+            step="0.1"
+            value={temperature}
+            onChange={(e) => setTemperature(parseFloat(e.target.value))}
+          />
+        </div>
+        <p className="app-description">Chat with an AI and see how it thinks. Explore token probabilities to understand response confidence and alternative suggestions.</p>
         <div className="legend">
           <div className="legend-item">
-            <span className="legend-color" style={{ backgroundColor: 'green' }}></span>
+            <span className="legend-color" style={{ backgroundColor: getColor(0.85) }}></span>
             <span>High confidence (≥50%)</span>
           </div>
           <div className="legend-item">
-            <span className="legend-color" style={{ backgroundColor: 'yellow' }}></span>
+            <span className="legend-color" style={{ backgroundColor: getColor(0.5) }}></span>
             <span>Medium confidence (20-49%)</span>
           </div>
           <div className="legend-item">
-            <span className="legend-color" style={{ backgroundColor: 'red' }}></span>
+            <span className="legend-color" style={{ backgroundColor: getColor(0.15) }}></span>
             <span>Low confidence (&lt;20%)</span>
           </div>
         </div>
@@ -215,7 +244,9 @@ const Chat = () => {
               {message.type === 'user' ? (
                 message.content
               ) : (
-                renderTokens(message.tokens)
+                <div className="tokens-container">
+                  {renderTokens(message.tokens)}
+                </div>
               )}
             </div>
           </div>
