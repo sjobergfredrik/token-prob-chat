@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip } from 'rechart
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import './Chat.css';
+import logo from '../uu-logo-red.svg';
 
 const getColor = (probability) => {
   // Red to yellow to green gradient
@@ -205,20 +206,22 @@ const Chat = () => {
 
   return (
     <div className="chat-container">
-      <div className="chat-header">
-        <h1>Inference Insights</h1>
-        <div className="temperature-control">
-          <label htmlFor="temperature">Temperature: {temperature.toFixed(2)}</label>
-          <input
-            type="range"
-            id="temperature"
-            min="0"
-            max="1"
-            step="0.1"
-            value={temperature}
-            onChange={(e) => setTemperature(parseFloat(e.target.value))}
-          />
+      <div className="uu-header">
+        <div className="uu-header-content">
+          <img src={logo} alt="Uppsala Universitet" className="uu-logo" />
+          <div className="uu-title-section">
+            <h1 className="uu-main-title">Inference Insights</h1>
+            <p className="uu-subtitle">Medarbetare</p>
+          </div>
+          <div className="uu-nav">
+            <a href="#" className="uu-nav-link">Logga in</a>
+            <a href="#" className="uu-nav-link">Sök</a>
+            <a href="#" className="uu-nav-link">English</a>
+            <a href="#" className="uu-nav-link">Meny</a>
+          </div>
         </div>
+      </div>
+      <div className="chat-header">
         <p className="app-description">Chat with an AI and see how it thinks. Explore token probabilities to understand response confidence and alternative suggestions.</p>
         <div className="legend">
           <div className="legend-item">
@@ -268,14 +271,19 @@ const Chat = () => {
             type="text"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Type your message..."
+            placeholder="Sök i medarbetare/skriv ditt meddelande..."
             disabled={isLoading}
             className="prompt-input"
           />
           <button type="submit" disabled={isLoading} className="submit-button">
-            {isLoading ? 'Sending...' : 'Send'}
+            {isLoading ? 'Skickar...' : 'Sök'}
           </button>
         </form>
+      </div>
+      <div className="uu-footer">
+        <div className="uu-footer-content">
+          <p>© Uppsala universitet 2025</p>
+        </div>
       </div>
     </div>
   );

@@ -1,27 +1,97 @@
 .chat-container {
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
-  padding: 20px;
-  font-family: Arial, sans-serif;
+  padding: 0;
+  font-family: 'Georgia', 'Times New Roman', serif;
   display: flex;
   flex-direction: column;
   height: 100vh;
   box-sizing: border-box;
+  background-color: #ffffff;
+}
+
+.uu-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 22.5px 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.uu-header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 40px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  justify-content: space-between;
+}
+
+.uu-logo {
+  height: 90px;
+  width: auto;
+}
+
+.uu-title-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.uu-main-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: normal;
+  color: #231f20;
+  font-family: 'Georgia', serif;
+}
+
+.uu-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+  font-weight: normal;
+}
+
+.uu-nav {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  margin-left: auto;
+}
+
+.uu-nav-link {
+  color: #231f20;
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.2s;
+  font-family: 'Georgia', serif;
+}
+
+.uu-nav-link:hover {
+  color: #af272f;
+  text-decoration: underline;
 }
 
 .chat-header {
-  position: sticky;
-  top: 0;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 40px;
   background-color: white;
   z-index: 100;
-  padding-bottom: 15px;
-  margin-bottom: 15px;
-  border-bottom: 1px solid #eee;
 }
 
 h1 {
   margin: 0 0 15px 0;
-  color: #202124;
+  color: #231f20;
+  font-family: 'Georgia', serif;
+  font-weight: normal;
+}
+
+.app-description {
+  color: #666;
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 15px;
 }
 
 .temperature-control {
@@ -48,9 +118,10 @@ h1 {
   flex-wrap: wrap;
   gap: 10px;
   background-color: #f9f9f9;
-  padding: 10px;
-  border-radius: 4px;
-  border: 1px solid #eee;
+  padding: 12px 15px;
+  border-radius: 0;
+  border: 1px solid #e0e0e0;
+  border-left: 3px solid #af272f;
 }
 
 .legend-item {
@@ -168,11 +239,12 @@ h1 {
 .messages-container {
   flex: 1;
   overflow-y: auto;
-  margin-bottom: 15px;
-  padding: 5px 15px;
-  background-color: #f9f9f9;
-  border-radius: 4px;
-  border: 1px solid #eee;
+  margin: 0 auto;
+  padding: 20px 40px;
+  background-color: #fafafa;
+  max-width: 1200px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .message {
@@ -204,7 +276,7 @@ h1 {
 }
 
 .message.user .message-content {
-  background-color: #4285f4;
+  background-color: #af272f;
   color: white;
 }
 
@@ -222,18 +294,19 @@ h1 {
   position: sticky;
   bottom: 0;
   background-color: white;
-  padding-top: 15px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid #e0e0e0;
+  box-shadow: 0 -2px 4px rgba(0,0,0,0.05);
 }
 
 .prompt-form {
   display: flex;
   gap: 10px;
   background-color: white;
-  padding: 15px;
-  border-radius: 4px;
-  border: 1px solid #eee;
-  margin: 0;
+  padding: 20px 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .prompt-input {
@@ -247,22 +320,24 @@ h1 {
 
 .prompt-input:focus {
   outline: none;
-  border-color: #4285f4;
+  border-color: #af272f;
+  box-shadow: 0 0 0 2px rgba(175, 39, 47, 0.1);
 }
 
 .submit-button {
   padding: 12px 24px;
   font-size: 16px;
-  background-color: #4285f4;
+  background-color: #af272f;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 0;
   cursor: pointer;
   transition: background-color 0.3s;
+  font-family: 'Georgia', serif;
 }
 
 .submit-button:hover {
-  background-color: #3367d6;
+  background-color: #8b1f26;
 }
 
 .submit-button:disabled {
@@ -373,4 +448,25 @@ h1 {
 
 .alternatives-list li {
   margin-bottom: 3px;
+}
+
+.uu-footer {
+  background-color: #f5f5f5;
+  border-top: 1px solid #e0e0e0;
+  padding: 20px 0;
+  margin-top: auto;
+}
+
+.uu-footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 40px;
+  text-align: center;
+}
+
+.uu-footer-content p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+  font-family: 'Georgia', serif;
 }
