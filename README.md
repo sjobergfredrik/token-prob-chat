@@ -1,124 +1,130 @@
 # Token Probability Chat
 
-This application provides a simple chat interface that displays token-level probabilities from an LLM (Language Learning Model). It uses color-coding (stoplight colors) to indicate the model's confidence in each token and provides detailed probability information on hover.
+An interactive chat interface that visualizes token-level probabilities from language models, helping users understand AI response confidence and decision-making processes. The application uses a hybrid approach to deliver both high-quality responses and detailed probability analysis.
 
-## Features
+## Key Features
 
-- Send prompts to OpenAI's API
-- Retrieve token-level probability data
-- Display generated text token by token
-- Color-code tokens based on confidence level:
-  - Green: High confidence (≥50%)
-  - Yellow: Medium confidence (20-49%)
-  - Red: Low confidence (<20%)
-- Show detailed token probabilities and alternatives on hover
+### 🎯 Hybrid Model Approach
+- **Response Generation**: Uses `gpt-4o-mini` for high-quality, context-aware responses
+- **Probability Analysis**: Uses `gpt-3.5-turbo-instruct` to extract token-level probabilities
+- Combines the best of both models: quality responses with detailed probability insights
+
+### 💬 Conversation History
+- Maintains full conversation context across multiple turns
+- System prompt ensures context-aware responses
+- Clean token handling for seamless multi-turn conversations
+
+### 📊 Visual Probability Indicators
+- **Color-coded tokens** based on model confidence:
+  - 🟢 Green: High confidence (≥50%)
+  - 🟡 Yellow: Medium confidence (20-49%)
+  - 🔴 Red: Low confidence (<20%)
+- **Interactive tooltips** showing:
+  - Token probability percentages
+  - Alternative token suggestions
+  - Visual indicators for strong alternatives
+
+### 🔍 Advanced Analysis
+- Click any token to explore alternatives
+- Visual highlighting of tokens with competitive alternatives
+- Real-time probability calculations from log-probabilities
 
 ## Setup
 
-1. Clone this repository
-2. Install dependencies:
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd token-prob-chat
    ```
+
+2. **Install dependencies**
+   ```bash
    npm install
    ```
-3. Create a `.env` file in the root directory with your OpenAI API key:
-   ```
+
+3. **Configure API access**
+   
+   Create a `.env` file in the root directory:
+   ```env
    REACT_APP_OPENAI_API_KEY=your_openai_api_key_here
    ```
-4. Start the development server:
-   ```
+
+4. **Start the development server**
+   ```bash
    npm start
    ```
+   
+   The app will open at [http://localhost:3000](http://localhost:3000)
 
 ## Usage
 
-1. Enter a prompt in the input field
-2. Click "Send" to submit the prompt to the OpenAI API
-3. View the generated response with color-coded tokens
-4. Hover over any token to see detailed probability information
+1. Enter your message in the input field
+2. Submit to receive an AI response
+3. Observe color-coded tokens indicating confidence levels
+4. Hover over tokens to see detailed probability information and alternatives
+5. Continue the conversation - context is maintained automatically
 
-## Technical Details
+## Technical Architecture
 
-- Uses OpenAI's text-davinci-003 model with logprobs parameter
-- Converts log probabilities to regular probabilities for easier interpretation
-- Implements tooltips using Tippy.js
+### API Integration
+- **Dual API calls** for optimal results:
+  1. Chat Completions API (`gpt-4o-mini`) for response quality
+  2. Completions API (`gpt-3.5-turbo-instruct`) for probability data
+- Automatic log-probability to probability conversion
+- Configurable temperature and token limits
 
-## Notes
+### Frontend Stack
+- **React** for UI components
+- **Tippy.js** for interactive tooltips
+- **Axios** for API requests
+- **React Force Graph** and **Recharts** for visualization capabilities
 
-- The OpenAI API key is required for this application to work
-- The application uses the text-davinci-003 model which supports the logprobs parameter
-- Token-level probabilities provide insight into the model's confidence in its output
+### Data Processing
+- Converts log-probabilities using `Math.exp()` for interpretable percentages
+- Handles token encoding (removes GPT tokenization artifacts like `Ġ` and `▁`)
+- Processes top-k alternative tokens for each position
 
-## License
+## Configuration
 
-MIT
+The application supports several parameters (configurable in `openaiService.js`):
 
-# Getting Started with Create React App
+- `maxTokens`: Maximum response length (default: 150)
+- `temperature`: Response randomness 0-1 (default: 0.3)
+- `logprobs`: Number of alternative tokens to retrieve (default: 5)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Use Cases
+
+- **Education**: Understand how language models make decisions
+- **Research**: Analyze model confidence and uncertainty
+- **Development**: Debug and improve prompt engineering
+- **Transparency**: Visualize AI decision-making processes
+
+## Requirements
+
+- Node.js 14+ 
+- OpenAI API key with access to:
+  - `gpt-4o-mini` model
+  - `gpt-3.5-turbo-instruct` model
 
 ## Available Scripts
 
-In the project directory, you can run:
+This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ### `npm start`
-
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
-
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Runs the app in development mode at [http://localhost:3000](http://localhost:3000)
 
 ### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Launches the test runner in interactive watch mode
 
 ### `npm run build`
+Builds the app for production to the `build` folder
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Contributing
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## License
 
-### `npm run eject`
+MIT License - see [LICENSE](LICENSE) file for details
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Copyright (c) 2025 Fredrik Sjöberg
